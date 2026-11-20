@@ -8,6 +8,12 @@ public class Roxi : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		// Includes relative to the module root: "Core/RoxiGameMode.h", "Character/RoxiCharacter.h".
+		PublicIncludePaths.Add(ModuleDirectory);
+
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+
+		// NetCore: Push Model (MARK_PROPERTY_DIRTY) for replicated properties.
+		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });
 	}
 }

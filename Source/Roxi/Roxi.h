@@ -3,3 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+/** Основная лог-категория проекта ROXI. */
+DECLARE_LOG_CATEGORY_EXTERN(LogRoxi, Log, All);
