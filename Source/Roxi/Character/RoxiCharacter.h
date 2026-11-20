@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class URoxiInventoryComponent;
 struct FInputActionValue;
 
 UCLASS(config=Game)
@@ -42,6 +43,18 @@ class ROXI_API ARoxiCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> LookAction;
 
+	/** Interact Input Action: поднять предмет / открыть контейнер */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> InteractAction;
+
+	/** Основной инвентарь (В1: 24 слота) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<URoxiInventoryComponent> Inventory;
+
+	/** Пояс — слоты быстрого доступа (В1: 6 слотов) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<URoxiInventoryComponent> Belt;
+
 public:
 	ARoxiCharacter();
 	
@@ -53,6 +66,9 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	/** Called for interact input */
+	void Interact();
 			
 
 protected:
@@ -66,5 +82,8 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	URoxiInventoryComponent* GetInventory() const { return Inventory; }
+	URoxiInventoryComponent* GetBelt() const { return Belt; }
 };
 

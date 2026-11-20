@@ -11,6 +11,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Items/RoxiInventoryComponent.h"
+#include "Items/RoxiItemInteractionComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ARoxiCharacter
@@ -49,6 +51,12 @@ ARoxiCharacter::ARoxiCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	// Inventory (GDD §5.2). Replicated to the owning player only.
+	Inventory = CreateDefaultSubobject<URoxiInventoryComponent>(TEXT("Inventory"));
+	Inventory->SetInitialNumSlots(24);
+	Belt = CreateDefaultSubobject<URoxiInventoryComponent>(TEXT("Belt"));
+	Belt->SetInitialNumSlots(6);
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
@@ -84,6 +92,12 @@ void ARoxiCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ARoxiCharacter::Look);
+
+		// Interacting
+		if (InteractAction)
+		{
+			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ARoxiCharacter::Interact);
+		}
 	}
 	else
 	{
@@ -111,6 +125,17 @@ void ARoxiCharacter::Move(const FInputActionValue& Value)
 		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
+	}
+}
+
+void ARoxiCharacter::Interact()
+{
+	if (Controller)
+	{
+		if (URoxiItemInteractionComponent* Interaction = Controller->FindComponentByClass<URoxiItemInteractionComponent>())
+		{
+			Interaction->InteractNearest();
+		}
 	}
 }
 

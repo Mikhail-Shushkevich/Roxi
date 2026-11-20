@@ -4,6 +4,7 @@
 #include "Core/RoxiGameState.h"
 #include "Core/RoxiPlayerController.h"
 #include "Core/RoxiPlayerState.h"
+#include "Dev/RoxiDebugHUD.h"
 #include "Character/RoxiCharacter.h"
 #include "Roxi.h"
 
@@ -12,6 +13,7 @@ ARoxiGameMode::ARoxiGameMode()
 	GameStateClass = ARoxiGameState::StaticClass();
 	PlayerStateClass = ARoxiPlayerState::StaticClass();
 	PlayerControllerClass = ARoxiPlayerController::StaticClass();
+	HUDClass = ARoxiDebugHUD::StaticClass(); // временный отладочный UI (Т9)
 
 	// Переопределяется в BP_RoxiGameMode на BP-персонажа с мешем и анимациями.
 	DefaultPawnClass = ARoxiCharacter::StaticClass();
