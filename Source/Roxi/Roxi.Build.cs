@@ -14,6 +14,7 @@ public class Roxi : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
 
 		// NetCore: Push Model (MARK_PROPERTY_DIRTY) for replicated properties.
-		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });
+		// AIModule: AAIController for load-test bots (Dev/).
+		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore", "AIModule" });
 	}
 }
