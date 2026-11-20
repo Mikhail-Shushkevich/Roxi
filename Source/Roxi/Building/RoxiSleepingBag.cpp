@@ -108,3 +108,14 @@ TArray<ARoxiSleepingBag*> ARoxiSleepingBag::FindByOwner(const UWorld* World, con
 	}
 	return Result;
 }
+
+float ARoxiSleepingBag::GetCooldownRemaining() const
+{
+	return GetWorld() ? FMath::Max(0.f, static_cast<float>(AvailableAt - GetWorld()->GetTimeSeconds())) : 0.f;
+}
+
+void ARoxiSleepingBag::SetCooldownRemaining(float Seconds)
+{
+	AvailableAt = GetWorld()->GetTimeSeconds() + FMath::Max(0.f, Seconds);
+	NotifyOwnerChanged();
+}

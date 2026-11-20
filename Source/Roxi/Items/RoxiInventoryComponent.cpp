@@ -126,6 +126,15 @@ FRoxiItemStack URoxiInventoryComponent::RemoveFromSlot(int32 Slot, int32 Quantit
 	return Removed;
 }
 
+void URoxiInventoryComponent::SetSlot(int32 Slot, const FRoxiItemStack& Stack)
+{
+	if (HasAuthority() && Slots.IsValidSlot(Slot))
+	{
+		Slots.SetStack(Slot, Stack);
+		BroadcastChanged();
+	}
+}
+
 int32 URoxiInventoryComponent::CountItem(const URoxiItemDefinition* Item) const
 {
 	int32 Total = 0;

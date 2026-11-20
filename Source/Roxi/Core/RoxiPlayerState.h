@@ -8,10 +8,21 @@
 
 /**
  * Данные игрока, переживающие смерть персонажа и видимые другим игрокам.
- * Пока пустое — поля появятся вместе с системами из GDD.
  */
 UCLASS()
 class ROXI_API ARoxiPlayerState : public APlayerState
 {
 	GENERATED_BODY()
+
+public:
+	/**
+	 * Только на сервере: постоянный ID игрока — владелец спальников, построек, спящего персонажа и профиля.
+	 * Берётся из онлайн-подсистемы. В не-Shipping сборках его можно задать параметром подключения
+	 * ?RoxiDevId=<имя> — для тестов: OnlineSubsystemNull в редакторе выдаёт случайный ID при каждом запуске.
+	 */
+	const FString& GetPersistentId() const { return PersistentId; }
+	void SetPersistentId(const FString& InId) { PersistentId = InId; }
+
+private:
+	FString PersistentId;
 };

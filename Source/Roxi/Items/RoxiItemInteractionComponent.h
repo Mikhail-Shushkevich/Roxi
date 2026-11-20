@@ -47,6 +47,11 @@ public:
 	/** Открытый контейнер и его содержимое (для интерфейса). */
 	URoxiInventoryComponent* GetViewedContainer() const { return ViewedContainer; }
 	const FRoxiInventoryList& GetViewedSlots() const { return ViewedSlots; }
+	/** Второй открытый контейнер: пояс обыскиваемого спящего персонажа (GDD §5.4). */
+	URoxiInventoryComponent* GetViewedContainer2() const { return ViewedContainer2; }
+	const FRoxiInventoryList& GetViewedSlots2() const { return ViewedSlots2; }
+	/** Открыт ли сейчас контейнер, принадлежащий этому актору. */
+	bool IsViewing(const AActor* Target) const;
 
 	// --- Намерения клиента ---
 
@@ -85,6 +90,13 @@ private:
 	UPROPERTY(Replicated)
 	FRoxiInventoryList ViewedSlots;
 
+	UPROPERTY(Replicated)
+	TObjectPtr<URoxiInventoryComponent> ViewedContainer2;
+
+	UPROPERTY(Replicated)
+	FRoxiInventoryList ViewedSlots2;
+
 	FDelegateHandle ViewedChangedHandle;
+	FDelegateHandle ViewedChangedHandle2;
 	float RangeCheckTimer = 0.f;
 };

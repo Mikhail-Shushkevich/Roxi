@@ -44,6 +44,9 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	/** Игрок выходит: живой персонаж остаётся в мире спящим (GDD §5.4) вместо удаления. */
+	virtual void PawnLeavingGame() override;
+
 	URoxiItemInteractionComponent* GetItemInteraction() const { return ItemInteraction; }
 
 	/** Постоянный ID игрока (UniqueNetId онлайн-подсистемы) — владелец спальников и построек. */
@@ -100,6 +103,10 @@ public:
 	UFUNCTION(Exec)
 	void RoxiHit(float Amount);
 
+	/** RoxiHitSleeper <Amount> — нанести урон ближайшему спящему персонажу (отладка GDD §5.4). */
+	UFUNCTION(Exec)
+	void RoxiHitSleeper(float Amount);
+
 	/** RoxiCraft <RecipeName> <Count> — поставить в очередь крафта. */
 	UFUNCTION(Exec)
 	void RoxiCraft(const FString& RecipeName, int32 Count);
@@ -133,6 +140,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerDevHit(float Amount);
+
+	UFUNCTION(Server, Reliable)
+	void ServerDevHitSleeper(float Amount);
 
 	URoxiInventoryComponent* ResolveContainer(const FString& Name) const;
 

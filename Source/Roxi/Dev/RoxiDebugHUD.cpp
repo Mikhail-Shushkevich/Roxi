@@ -102,6 +102,10 @@ void ARoxiDebugHUD::DrawHUD()
 	{
 		DrawLine(FString::Printf(TEXT("Open container: %s"), *Interaction->GetViewedSlots().Describe()), Y, FLinearColor::Green);
 	}
+	if (Interaction->GetViewedContainer2())
+	{
+		DrawLine(FString::Printf(TEXT("Open container 2 (loot2): %s"), *Interaction->GetViewedSlots2().Describe()), Y, FLinearColor::Green);
+	}
 
 	if (const AActor* Target = Interaction->FindNearestInteractable())
 	{
@@ -113,6 +117,10 @@ void ARoxiDebugHUD::DrawHUD()
 		else if (const ARoxiLootContainer* Container = Cast<ARoxiLootContainer>(Target))
 		{
 			Prompt = FString::Printf(TEXT("[E] Open/close loot of %s"), *Container->GetOwnerLabel());
+		}
+		else if (const ARoxiCharacter* Sleeper = Cast<ARoxiCharacter>(Target))
+		{
+			Prompt = FString::Printf(TEXT("[E] Search sleeping %s"), *Sleeper->GetSleeperName());
 		}
 		DrawLine(Prompt, Y, FLinearColor(0.4f, 0.8f, 1.f));
 	}

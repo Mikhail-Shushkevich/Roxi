@@ -6,6 +6,7 @@
 #include "Building/RoxiBuildPieceDefinition.h"
 #include "Character/RoxiCharacter.h"
 #include "Core/RoxiGameMode.h"
+#include "Core/RoxiPlayerState.h"
 #include "Crafting/RoxiCraftingComponent.h"
 #include "Crafting/RoxiRecipeDefinition.h"
 #include "Items/RoxiInventoryComponent.h"
@@ -14,6 +15,7 @@
 #include "Survival/RoxiHealthComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/DamageType.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
@@ -39,7 +41,8 @@ void ARoxiPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 FString ARoxiPlayerController::GetPersistentPlayerId() const
 {
-	return (PlayerState && PlayerState->GetUniqueId().IsValid()) ? PlayerState->GetUniqueId().ToString() : FString();
+	const ARoxiPlayerState* RoxiState = GetPlayerState<ARoxiPlayerState>();
+	return RoxiState ? RoxiState->GetPersistentId() : FString();
 }
 
 void ARoxiPlayerController::RefreshRespawnPoints()
@@ -94,7 +97,8 @@ URoxiInventoryComponent* ARoxiPlayerController::ResolveContainer(const FString& 
 	if (Name.Equals(TEXT("inv"), ESearchCase::IgnoreCase))  { return ItemInteraction->GetPawnInventory(); }
 	if (Name.Equals(TEXT("belt"), ESearchCase::IgnoreCase)) { return ItemInteraction->GetPawnBelt(); }
 	if (Name.Equals(TEXT("loot"), ESearchCase::IgnoreCase)) { return ItemInteraction->GetViewedContainer(); }
-	UE_LOG(LogRoxi, Warning, TEXT("Unknown container '%s' (use inv, belt, loot)"), *Name);
+	if (Name.Equals(TEXT("loot2"), ESearchCase::IgnoreCase)) { return ItemInteraction->GetViewedContainer2(); }
+	UE_LOG(LogRoxi, Warning, TEXT("Unknown container '%s' (use inv, belt, loot, loot2)"), *Name);
 	return nullptr;
 }
 
@@ -126,6 +130,10 @@ void ARoxiPlayerController::RoxiInv()
 	UE_LOG(LogRoxi, Display, TEXT("INV %s belt: %s"), *GetName(), Belt ? *Belt->Describe() : TEXT("(no pawn)"));
 	UE_LOG(LogRoxi, Display, TEXT("INV %s loot: %s"), *GetName(),
 		ItemInteraction->GetViewedContainer() ? *ItemInteraction->GetViewedSlots().Describe() : TEXT("(not open)"));
+	if (ItemInteraction->GetViewedContainer2())
+	{
+		UE_LOG(LogRoxi, Display, TEXT("INV %s loot2: %s"), *GetName(), *ItemInteraction->GetViewedSlots2().Describe());
+	}
 
 	const AGameStateBase* GS = GetWorld()->GetGameState();
 	const double Now = GS ? GS->GetServerWorldTimeSeconds() : 0.0;
@@ -339,4 +347,55 @@ void ARoxiPlayerController::ServerDevHit_Implementation(float Amount)
 		UGameplayStatics::ApplyDamage(Best, Amount, this, MyPawn, UDamageType::StaticClass());
 	}
 #endif
+}
+
+void ARoxiPlayerController::RoxiHitSleeper(float Amount)
+{
+	ServerDevHitSleeper(Amount);
+}
+
+void ARoxiPlayerController::ServerDevHitSleeper_Implementation(float Amount)
+{
+#if !UE_BUILD_SHIPPING
+	const APawn* MyPawn = GetPawn();
+	ARoxiCharacter* Best = nullptr;
+	float BestDistSq = FMath::Square(URoxiItemInteractionComponent::GetInteractRange());
+	for (TActorIterator<ARoxiCharacter> It(GetWorld()); It; ++It)
+	{
+		if (MyPawn && It->IsSleeping())
+		{
+			const float DistSq = FVector::DistSquared(MyPawn->GetActorLocation(), It->GetActorLocation());
+			if (DistSq < BestDistSq)
+			{
+				BestDistSq = DistSq;
+				Best = *It;
+			}
+		}
+	}
+	if (Best)
+	{
+		UE_LOG(LogRoxi, Log, TEXT("RoxiHitSleeper: %s hits sleeping %s for %.0f"), *GetName(), *Best->GetSleeperName(), Amount);
+		UGameplayStatics::ApplyDamage(Best, Amount, this, GetPawn(), UDamageType::StaticClass());
+	}
+	else
+	{
+		ClientShowMessage(TEXT("No sleeping character in range"));
+	}
+#endif
+}
+
+void ARoxiPlayerController::PawnLeavingGame()
+{
+	// Вызывается при уничтожении контроллера (отключение) — раньше, чем GameMode::Logout.
+	ARoxiCharacter* MyCharacter = Cast<ARoxiCharacter>(GetPawn());
+	if (HasAuthority() && MyCharacter && !MyCharacter->GetHealth()->IsDead())
+	{
+		const FString PlayerId = GetPersistentPlayerId();
+		const FString PlayerName = PlayerState ? PlayerState->GetPlayerName() : FString();
+		UnPossess();
+		MyCharacter->EnterSleep(PlayerId, PlayerName);
+		UE_LOG(LogRoxi, Log, TEXT("%s left — character sleeps at %s"), *PlayerId, *MyCharacter->GetActorLocation().ToCompactString());
+		return;
+	}
+	Super::PawnLeavingGame();
 }

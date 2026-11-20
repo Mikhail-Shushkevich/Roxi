@@ -53,3 +53,12 @@ void URoxiHealthComponent::ApplyDamage(float Amount, AController* Instigator)
 		OnDeath.Broadcast(this, Instigator);
 	}
 }
+
+void URoxiHealthComponent::SetCurrentHealth(float NewHealth)
+{
+	if (GetOwner()->HasAuthority() && !bDead && NewHealth > 0.f)
+	{
+		Health = FMath::Min(NewHealth, MaxHealth);
+		MARK_PROPERTY_DIRTY_FROM_NAME(URoxiHealthComponent, Health, this);
+	}
+}

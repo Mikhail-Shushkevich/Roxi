@@ -99,10 +99,32 @@ public:
 
 	URoxiCraftingComponent* GetCrafting() const { return Crafting; }
 
+	// --- Спящий персонаж (GDD §5.4): игрок вышел, персонаж остался в мире ---
+
+	bool IsSleeping() const { return bSleeping; }
+	/** Только на сервере: постоянный ID владельца спящего персонажа. */
+	const FString& GetSleeperId() const { return SleeperId; }
+	const FString& GetSleeperName() const { return SleeperName; }
+
+	/** Сервер: уснуть (контроллер уже отсоединён). Очередь крафта отменяется с возвратом (П5). */
+	void EnterSleep(const FString& PlayerId, const FString& PlayerName);
+	/** Сервер: проснуться перед тем, как владелец снова управляет персонажем. */
+	void ExitSleep();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	void HandleDeath(URoxiHealthComponent* DeadHealth, AController* Killer);
+
+	UPROPERTY(Replicated)
+	bool bSleeping = false;
+
+	UPROPERTY(Replicated)
+	FString SleeperName;
+
+	FString SleeperId;
 };
 

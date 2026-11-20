@@ -33,10 +33,27 @@ public:
 	/** Точки возрождения владельца изменились — обновить его список у подключённого игрока. */
 	void NotifyRespawnPointsChanged(const FString& OwnerId);
 
+	/** Мир загружен из сохранения — выдать персонажей игрокам, вошедшим раньше (хост listen-сервера). */
+	void OnWorldLoaded();
+
+	/** Спящий персонаж игрока (GDD §5.4) или nullptr. */
+	ARoxiCharacter* FindSleeper(const FString& PlayerId) const;
+
+	/** Игроки, которые сейчас мертвы и не в игре (сохраняется в мире). */
+	const TSet<FString>& GetDeadPlayers() const { return DeadPlayers; }
+	void SetDeadPlayers(const TArray<FString>& InDeadPlayers) { DeadPlayers = TSet<FString>(InDeadPlayers); }
+
 protected:
+	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId,
+		const FString& Options, const FString& Portal) override;
+	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
 
 	/** Не запоминать точку появления: каждый раз случайная свободная (GDD §4.4, Т8). */
 	virtual bool ShouldSpawnAtStartSpot(AController* Player) override { return false; }
+
+private:
+	TSet<FString> DeadPlayers;
+	TArray<TWeakObjectPtr<APlayerController>> PendingStartPlayers;
 };

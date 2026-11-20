@@ -33,6 +33,8 @@ void URoxiItemInteractionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeP
 	// Компонент на PlayerController — PlayerController реплицируется только своему игроку.
 	DOREPLIFETIME_CONDITION(URoxiItemInteractionComponent, ViewedContainer, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(URoxiItemInteractionComponent, ViewedSlots, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(URoxiItemInteractionComponent, ViewedContainer2, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(URoxiItemInteractionComponent, ViewedSlots2, COND_OwnerOnly);
 }
 
 float URoxiItemInteractionComponent::GetInteractRange()
@@ -75,7 +77,13 @@ bool URoxiItemInteractionComponent::CanAccess(const URoxiInventoryComponent* Inv
 	{
 		return true;
 	}
-	return Inventory == ViewedContainer && IsInRange(Inventory->GetOwner());
+	if (Inventory != ViewedContainer && Inventory != ViewedContainer2)
+	{
+		return false;
+	}
+	// Проснувшегося (владелец вошёл в игру) обыскивать уже нельзя — даже до автозакрытия.
+	const ARoxiCharacter* Sleeper = Cast<ARoxiCharacter>(Inventory->GetOwner());
+	return IsInRange(Inventory->GetOwner()) && (!Sleeper || Sleeper->IsSleeping());
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +100,7 @@ AActor* URoxiItemInteractionComponent::FindNearestInteractable() const
 
 	TArray<FOverlapResult> Overlaps;
 	FCollisionObjectQueryParams ObjectParams(ECC_WorldDynamic);
+	ObjectParams.AddObjectTypesToQuery(ECC_Pawn); // спящие персонажи
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(RoxiInteract), false, Pawn);
 	World->OverlapMultiByObjectType(Overlaps, Pawn->GetActorLocation(), FQuat::Identity, ObjectParams,
 		FCollisionShape::MakeSphere(GetInteractRange()), Params);
@@ -101,7 +110,8 @@ AActor* URoxiItemInteractionComponent::FindNearestInteractable() const
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
 		AActor* Actor = Overlap.GetActor();
-		if (Actor && (Actor->IsA<ARoxiWorldItem>() || Actor->IsA<ARoxiLootContainer>()))
+		const ARoxiCharacter* Sleeper = Cast<ARoxiCharacter>(Actor);
+		if (Actor && (Actor->IsA<ARoxiWorldItem>() || Actor->IsA<ARoxiLootContainer>() || (Sleeper && Sleeper->IsSleeping())))
 		{
 			const float DistSq = FVector::DistSquared(Pawn->GetActorLocation(), Actor->GetActorLocation());
 			if (DistSq < BestDistSq)
@@ -121,15 +131,16 @@ void URoxiItemInteractionComponent::InteractNearest()
 	{
 		ServerPickUp(WorldItem);
 	}
-	else if (ARoxiLootContainer* Container = Cast<ARoxiLootContainer>(Target))
+	else if (Target)
 	{
-		if (ViewedContainer && ViewedContainer == Container->GetInventory())
+		// Контейнер с добычей или спящий персонаж — открыть/закрыть.
+		if (IsViewing(Target))
 		{
 			ServerCloseContainer();
 		}
 		else
 		{
-			ServerOpenContainer(Container);
+			ServerOpenContainer(Target);
 		}
 	}
 	else if (ViewedContainer)
@@ -191,9 +202,22 @@ void URoxiItemInteractionComponent::ServerPickUp_Implementation(ARoxiWorldItem* 
 
 void URoxiItemInteractionComponent::ServerOpenContainer_Implementation(AActor* ContainerActor)
 {
-	const ARoxiLootContainer* Container = Cast<ARoxiLootContainer>(ContainerActor);
-	URoxiInventoryComponent* Inventory = Container ? Container->GetInventory() : nullptr;
-	if (!Inventory || !GetControlledPawn() || !IsInRange(Container))
+	// Контейнер с добычей — один контейнер; спящий персонаж (не свой) — его инвентарь и пояс (GDD §5.4).
+	URoxiInventoryComponent* Inventory = nullptr;
+	URoxiInventoryComponent* Second = nullptr;
+	if (const ARoxiLootContainer* Container = Cast<ARoxiLootContainer>(ContainerActor))
+	{
+		Inventory = Container->GetInventory();
+	}
+	else if (const ARoxiCharacter* Sleeper = Cast<ARoxiCharacter>(ContainerActor))
+	{
+		if (Sleeper->IsSleeping() && Sleeper != GetControlledPawn())
+		{
+			Inventory = Sleeper->GetInventory();
+			Second = Sleeper->GetBelt();
+		}
+	}
+	if (!Inventory || !GetControlledPawn() || !IsInRange(ContainerActor))
 	{
 		return;
 	}
@@ -202,7 +226,18 @@ void URoxiItemInteractionComponent::ServerOpenContainer_Implementation(AActor* C
 	ViewedContainer = Inventory;
 	ViewedSlots.SyncFrom(Inventory->GetList());
 	ViewedChangedHandle = Inventory->OnChanged.AddUObject(this, &URoxiItemInteractionComponent::HandleViewedContainerChanged);
-	UE_LOG(LogRoxi, Log, TEXT("%s opened %s"), *GetNameSafe(GetOwner()), *GetNameSafe(Container));
+	if (Second)
+	{
+		ViewedContainer2 = Second;
+		ViewedSlots2.SyncFrom(Second->GetList());
+		ViewedChangedHandle2 = Second->OnChanged.AddUObject(this, &URoxiItemInteractionComponent::HandleViewedContainerChanged);
+	}
+	UE_LOG(LogRoxi, Log, TEXT("%s opened %s"), *GetNameSafe(GetOwner()), *GetNameSafe(ContainerActor));
+}
+
+bool URoxiItemInteractionComponent::IsViewing(const AActor* Target) const
+{
+	return Target && ViewedContainer && ViewedContainer->GetOwner() == Target;
 }
 
 void URoxiItemInteractionComponent::ServerPlaceDeployable_Implementation(URoxiInventoryComponent* From, int32 Slot, FVector Location, float Yaw)
@@ -253,11 +288,21 @@ void URoxiItemInteractionComponent::CloseContainer()
 	{
 		ViewedContainer->OnChanged.Remove(ViewedChangedHandle);
 	}
+	if (ViewedContainer2)
+	{
+		ViewedContainer2->OnChanged.Remove(ViewedChangedHandle2);
+	}
 	ViewedChangedHandle.Reset();
+	ViewedChangedHandle2.Reset();
 	if (ViewedContainer || ViewedSlots.Num() > 0)
 	{
 		ViewedContainer = nullptr;
 		ViewedSlots.Reset();
+	}
+	if (ViewedContainer2 || ViewedSlots2.Num() > 0)
+	{
+		ViewedContainer2 = nullptr;
+		ViewedSlots2.Reset();
 	}
 }
 
@@ -266,6 +311,10 @@ void URoxiItemInteractionComponent::HandleViewedContainerChanged(URoxiInventoryC
 	if (Inventory == ViewedContainer)
 	{
 		ViewedSlots.SyncFrom(Inventory->GetList());
+	}
+	else if (Inventory == ViewedContainer2)
+	{
+		ViewedSlots2.SyncFrom(Inventory->GetList());
 	}
 }
 
@@ -284,7 +333,9 @@ void URoxiItemInteractionComponent::TickComponent(float DeltaTime, ELevelTick Ti
 		return;
 	}
 	RangeCheckTimer = 0.5f;
-	if (!IsValid(ViewedContainer) || !IsInRange(ViewedContainer->GetOwner()))
+	const ARoxiCharacter* Sleeper = IsValid(ViewedContainer) ? Cast<ARoxiCharacter>(ViewedContainer->GetOwner()) : nullptr;
+	if (!IsValid(ViewedContainer) || !IsInRange(ViewedContainer->GetOwner())
+		|| (Sleeper && !Sleeper->IsSleeping())) // владелец вошёл в игру — обыск прекращается
 	{
 		CloseContainer();
 	}

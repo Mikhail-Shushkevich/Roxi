@@ -51,6 +51,9 @@ public:
 	/** Задать число слотов. Допустимо, только пока контейнер пуст. */
 	bool SetNumSlots(int32 InNumSlots);
 
+	/** Записать стопку прямо в слот (загрузка сохранения). */
+	void SetSlot(int32 Slot, const FRoxiItemStack& Stack);
+
 	/** Добавить предметы: сначала в неполные стопки того же типа, затем в пустые слоты. Возвращает остаток, который не поместился. */
 	int32 AddItem(URoxiItemDefinition* Item, int32 Quantity);
 

@@ -358,6 +358,7 @@ ARoxiBuildingPiece* ARoxiBuildingPiece::SpawnPiece(UWorld* World, const URoxiBui
 	if (Piece)
 	{
 		Piece->PieceType = Definition->PieceType;
+		Piece->Definition = Definition;
 		Piece->OwnerId = InOwnerId;
 		Piece->Health->SetInitialMaxHealth(Definition->MaxHealth);
 		MARK_PROPERTY_DIRTY_FROM_NAME(ARoxiBuildingPiece, PieceType, Piece);

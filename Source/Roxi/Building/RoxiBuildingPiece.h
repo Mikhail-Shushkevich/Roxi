@@ -48,6 +48,9 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	ERoxiPieceType GetPieceType() const { return PieceType; }
+	const URoxiBuildPieceDefinition* GetDefinition() const { return Definition; }
+	const FString& GetOwnerId() const { return OwnerId; }
+	URoxiHealthComponent* GetHealth() const { return Health; }
 
 	/** Гнёзда этого элемента, к которым можно присоединить элемент типа ForType. */
 	void GetSockets(ERoxiPieceType ForType, TArray<FRoxiBuildSocket>& OutSockets) const;
@@ -93,6 +96,10 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_PieceType)
 	ERoxiPieceType PieceType = ERoxiPieceType::Foundation;
+
+	/** Только на сервере. */
+	UPROPERTY(Transient)
+	TObjectPtr<const URoxiBuildPieceDefinition> Definition;
 
 	/** Только на сервере. */
 	FString OwnerId;

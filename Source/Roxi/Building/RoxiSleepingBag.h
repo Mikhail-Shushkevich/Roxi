@@ -27,6 +27,10 @@ public:
 	/** Время мира сервера, когда точка снова доступна. */
 	double GetAvailableAt() const { return AvailableAt; }
 	bool IsAvailable() const;
+	/** Оставшаяся перезарядка, с (сохранение — П6). */
+	float GetCooldownRemaining() const;
+	void SetCooldownRemaining(float Seconds);
+
 	/** Сервер: точка использована — начать перезарядку. */
 	void MarkUsed();
 

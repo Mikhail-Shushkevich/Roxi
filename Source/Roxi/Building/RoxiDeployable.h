@@ -32,6 +32,7 @@ public:
 	/** Сервер: задать владельца (постоянный ID игрока). */
 	void InitOwner(const FString& InOwnerId) { OwnerId = InOwnerId; }
 	const FString& GetOwnerId() const { return OwnerId; }
+	URoxiHealthComponent* GetHealth() const { return Health; }
 
 protected:
 	virtual void BeginPlay() override;

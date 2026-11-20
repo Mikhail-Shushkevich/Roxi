@@ -33,6 +33,9 @@ public:
 	/** Максимум здоровья, применяемый в BeginPlay. Для конструкторов и отложенного спавна. */
 	void SetInitialMaxHealth(float InMaxHealth) { MaxHealth = FMath::Max(1.f, InMaxHealth); Health = MaxHealth; }
 
+	/** Сервер: установить текущее здоровье (загрузка сохранения). */
+	void SetCurrentHealth(float NewHealth);
+
 	/** Сервер: нанести урон. При достижении 0 — смерть (один раз). */
 	void ApplyDamage(float Amount, AController* Instigator);
 

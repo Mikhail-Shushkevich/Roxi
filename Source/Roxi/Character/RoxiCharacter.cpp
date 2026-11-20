@@ -15,6 +15,8 @@
 #include "Items/RoxiItemInteractionComponent.h"
 #include "Survival/RoxiHealthComponent.h"
 #include "Crafting/RoxiCraftingComponent.h"
+#include "Net/Core/PushModel/PushModel.h"
+#include "Net/UnrealNetwork.h"
 #include "Core/RoxiGameMode.h"
 #include "Engine/World.h"
 
@@ -72,6 +74,48 @@ void ARoxiCharacter::BeginPlay()
 	{
 		Health->OnDeath.AddUObject(this, &ARoxiCharacter::HandleDeath);
 	}
+}
+
+void ARoxiCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	FDoRepLifetimeParams Params;
+	Params.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(ARoxiCharacter, bSleeping, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ARoxiCharacter, SleeperName, Params);
+}
+
+void ARoxiCharacter::EnterSleep(const FString& PlayerId, const FString& PlayerName)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	Crafting->CancelAll();
+	bSleeping = true;
+	SleeperId = PlayerId;
+	SleeperName = PlayerName;
+	MARK_PROPERTY_DIRTY_FROM_NAME(ARoxiCharacter, bSleeping, this);
+	MARK_PROPERTY_DIRTY_FROM_NAME(ARoxiCharacter, SleeperName, this);
+
+	// Без контроллера персонаж должен оставаться под действием гравитации (упасть, если вышел в прыжке).
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->bRunPhysicsWithNoController = true;
+}
+
+void ARoxiCharacter::ExitSleep()
+{
+	if (!HasAuthority() || !bSleeping)
+	{
+		return;
+	}
+	bSleeping = false;
+	SleeperId.Reset();
+	SleeperName.Reset();
+	MARK_PROPERTY_DIRTY_FROM_NAME(ARoxiCharacter, bSleeping, this);
+	MARK_PROPERTY_DIRTY_FROM_NAME(ARoxiCharacter, SleeperName, this);
+	GetCharacterMovement()->bRunPhysicsWithNoController = false;
 }
 
 void ARoxiCharacter::HandleDeath(URoxiHealthComponent* DeadHealth, AController* Killer)
