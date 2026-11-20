@@ -4,6 +4,11 @@
 #include "Items/RoxiInventoryComponent.h"
 #include "Items/RoxiItemDefinition.h"
 #include "Items/RoxiItemInteractionComponent.h"
+#include "Character/RoxiCharacter.h"
+#include "Core/RoxiGameMode.h"
+#include "Survival/RoxiHealthComponent.h"
+#include "GameFramework/DamageType.h"
+#include "Kismet/GameplayStatics.h"
 #include "Roxi.h"
 
 ARoxiPlayerController::ARoxiPlayerController()
@@ -40,8 +45,41 @@ void ARoxiPlayerController::ServerDevGive_Implementation(FName ItemName, int32 Q
 #endif
 }
 
+void ARoxiPlayerController::ServerRequestRespawn_Implementation()
+{
+	if (ARoxiGameMode* GameMode = GetWorld()->GetAuthGameMode<ARoxiGameMode>())
+	{
+		GameMode->RequestRespawn(this);
+	}
+}
+
+void ARoxiPlayerController::RoxiRespawn()
+{
+	ServerRequestRespawn();
+}
+
+void ARoxiPlayerController::RoxiDamage(float Amount)
+{
+	ServerDevDamage(Amount);
+}
+
+void ARoxiPlayerController::ServerDevDamage_Implementation(float Amount)
+{
+#if !UE_BUILD_SHIPPING
+	if (APawn* MyPawn = GetPawn())
+	{
+		UGameplayStatics::ApplyDamage(MyPawn, Amount, this, nullptr, UDamageType::StaticClass());
+	}
+#endif
+}
+
 void ARoxiPlayerController::RoxiInv()
 {
+	if (const ARoxiCharacter* MyCharacter = Cast<ARoxiCharacter>(GetPawn()))
+	{
+		UE_LOG(LogRoxi, Display, TEXT("INV %s health: %.0f / %.0f"), *GetName(),
+			MyCharacter->GetHealth()->GetHealth(), MyCharacter->GetHealth()->GetMaxHealth());
+	}
 	const URoxiInventoryComponent* Inventory = ItemInteraction->GetPawnInventory();
 	const URoxiInventoryComponent* Belt = ItemInteraction->GetPawnBelt();
 	UE_LOG(LogRoxi, Display, TEXT("INV %s inv: %s"), *GetName(), Inventory ? *Inventory->Describe() : TEXT("(no pawn)"));

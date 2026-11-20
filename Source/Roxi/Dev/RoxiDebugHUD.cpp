@@ -2,6 +2,8 @@
 
 #include "Dev/RoxiDebugHUD.h"
 #include "Core/RoxiPlayerController.h"
+#include "Character/RoxiCharacter.h"
+#include "Survival/RoxiHealthComponent.h"
 #include "Items/RoxiInventoryComponent.h"
 #include "Items/RoxiItemInteractionComponent.h"
 #include "Items/RoxiLootContainer.h"
@@ -32,8 +34,14 @@ void ARoxiDebugHUD::DrawHUD()
 
 	if (!PC->GetPawn())
 	{
-		DrawLine(TEXT("No character."), Y, FLinearColor::Red);
+		DrawLine(TEXT("You are dead. Console: RoxiRespawn (random spawn point)"), Y, FLinearColor::Red);
 		return;
+	}
+
+	if (const ARoxiCharacter* MyCharacter = Cast<ARoxiCharacter>(PC->GetPawn()))
+	{
+		const URoxiHealthComponent* Health = MyCharacter->GetHealth();
+		DrawLine(FString::Printf(TEXT("Health: %.0f / %.0f"), Health->GetHealth(), Health->GetMaxHealth()), Y);
 	}
 
 	if (const URoxiInventoryComponent* Inventory = Interaction->GetPawnInventory())
@@ -63,6 +71,6 @@ void ARoxiDebugHUD::DrawHUD()
 		DrawLine(Prompt, Y, FLinearColor(0.4f, 0.8f, 1.f));
 	}
 
-	DrawLine(TEXT("Console: RoxiGive <Item> <N> | RoxiMove <inv|belt|loot> <slot> <inv|belt|loot> <slot> <N> | RoxiDrop <c> <slot> <N> | RoxiInv"), Y, FLinearColor::Gray);
+	DrawLine(TEXT("Console: RoxiGive <Item> <N> | RoxiMove <inv|belt|loot> <slot> <inv|belt|loot> <slot> <N> | RoxiDrop <c> <slot> <N> | RoxiDamage <N> | RoxiInv"), Y, FLinearColor::Gray);
 #endif
 }

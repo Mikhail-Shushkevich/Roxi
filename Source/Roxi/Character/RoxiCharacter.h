@@ -12,6 +12,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class URoxiInventoryComponent;
+class URoxiHealthComponent;
 struct FInputActionValue;
 
 UCLASS(config=Game)
@@ -55,6 +56,10 @@ class ROXI_API ARoxiCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<URoxiInventoryComponent> Belt;
 
+	/** Здоровье (В7) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Survival, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<URoxiHealthComponent> Health;
+
 public:
 	ARoxiCharacter();
 	
@@ -85,5 +90,14 @@ public:
 
 	URoxiInventoryComponent* GetInventory() const { return Inventory; }
 	URoxiInventoryComponent* GetBelt() const { return Belt; }
+	URoxiHealthComponent* GetHealth() const { return Health; }
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+protected:
+	virtual void BeginPlay() override;
+
+private:
+	void HandleDeath(URoxiHealthComponent* DeadHealth, AController* Killer);
 };
 

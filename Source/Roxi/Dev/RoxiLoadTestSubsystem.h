@@ -32,6 +32,9 @@ public:
 
 	void SpawnBots(int32 Count, float Radius);
 	void ClearBots();
+	/** Предметы на земле (каждый 4-й — контейнер с добычей) для замера стоимости спящих акторов. */
+	void SpawnItems(int32 Count, float Radius);
+	void ClearItems();
 	void StartMeasure(float Seconds);
 	void StartSweep(float InitialDelay, float MeasureSeconds, const TArray<int32>& Counts);
 
@@ -45,6 +48,7 @@ private:
 
 	TArray<TWeakObjectPtr<APawn>> Bots;
 	TArray<TWeakObjectPtr<AController>> BotControllers;
+	TArray<TWeakObjectPtr<AActor>> SpawnedItems;
 
 	EPhase Phase = EPhase::Idle;
 	double PhaseEndTime = 0.0;

@@ -13,6 +13,9 @@
 #include "InputActionValue.h"
 #include "Items/RoxiInventoryComponent.h"
 #include "Items/RoxiItemInteractionComponent.h"
+#include "Survival/RoxiHealthComponent.h"
+#include "Core/RoxiGameMode.h"
+#include "Engine/World.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ARoxiCharacter
@@ -56,6 +59,32 @@ ARoxiCharacter::ARoxiCharacter()
 	Inventory->SetInitialNumSlots(24);
 	Belt = CreateDefaultSubobject<URoxiInventoryComponent>(TEXT("Belt"));
 	Belt->SetInitialNumSlots(6);
+
+	Health = CreateDefaultSubobject<URoxiHealthComponent>(TEXT("Health"));
+}
+
+void ARoxiCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	if (HasAuthority())
+	{
+		Health->OnDeath.AddUObject(this, &ARoxiCharacter::HandleDeath);
+	}
+}
+
+float ARoxiCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	const float Applied = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	Health->ApplyDamage(Applied, EventInstigator);
+	return Applied;
+}
+
+void ARoxiCharacter::HandleDeath(URoxiHealthComponent* DeadHealth, AController* Killer)
+{
+	if (ARoxiGameMode* GameMode = GetWorld()->GetAuthGameMode<ARoxiGameMode>())
+	{
+		GameMode->HandleCharacterDeath(this, Killer);
+	}
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)

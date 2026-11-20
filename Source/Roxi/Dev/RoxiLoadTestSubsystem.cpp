@@ -10,6 +10,10 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "HAL/IConsoleManager.h"
+#include "Items/RoxiInventoryComponent.h"
+#include "Items/RoxiItemDefinition.h"
+#include "Items/RoxiLootContainer.h"
+#include "Items/RoxiWorldItem.h"
 
 bool URoxiLoadTestSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -108,6 +112,64 @@ void URoxiLoadTestSubsystem::ClearBots()
 	UE_LOG(LogRoxi, Log, TEXT("LoadTest: cleared %d bots"), Bots.Num());
 	Bots.Reset();
 	BotControllers.Reset();
+}
+
+void URoxiLoadTestSubsystem::SpawnItems(int32 Count, float Radius)
+{
+	if (!HasAuthorityWorld() || Count <= 0)
+	{
+		return;
+	}
+	URoxiItemDefinition* Item = URoxiItemDefinition::LoadByName(TEXT("DEV_TestItemA"));
+	if (!Item)
+	{
+		UE_LOG(LogRoxi, Error, TEXT("LoadTest: DEV_TestItemA not found"));
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	FVector Center = FVector::ZeroVector;
+	for (TActorIterator<APlayerStart> It(World); It; ++It)
+	{
+		Center = It->GetActorLocation();
+		break;
+	}
+
+	int32 Containers = 0;
+	for (int32 i = 0; i < Count; ++i)
+	{
+		const FVector2D Offset = FMath::RandPointInCircle(Radius);
+		const FVector Location = Center + FVector(Offset.X, Offset.Y, 0.f);
+		if (i % 4 == 3)
+		{
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			if (ARoxiLootContainer* Container = World->SpawnActor<ARoxiLootContainer>(Location, FRotator::ZeroRotator, Params))
+			{
+				Container->GetInventory()->AddItem(Item, 10);
+				SpawnedItems.Add(Container);
+				++Containers;
+			}
+		}
+		else if (ARoxiWorldItem* WorldItem = ARoxiWorldItem::SpawnItem(World, FRoxiItemStack(Item, 1), Location))
+		{
+			SpawnedItems.Add(WorldItem);
+		}
+	}
+	UE_LOG(LogRoxi, Log, TEXT("LoadTest: spawned %d world actors (%d loot containers), total %d"),
+		Count, Containers, SpawnedItems.Num());
+}
+
+void URoxiLoadTestSubsystem::ClearItems()
+{
+	for (const TWeakObjectPtr<AActor>& Actor : SpawnedItems)
+	{
+		if (Actor.IsValid())
+		{
+			Actor->Destroy();
+		}
+	}
+	SpawnedItems.Reset();
 }
 
 void URoxiLoadTestSubsystem::StartMeasure(float Seconds)
@@ -274,6 +336,23 @@ namespace RoxiLoadTest
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
 		{
 			if (URoxiLoadTestSubsystem* Sub = Get(World)) { Sub->ClearBots(); }
+		}));
+
+	static FAutoConsoleCommandWithWorldAndArgs SpawnItemsCmd(
+		TEXT("roxi.LoadTest.SpawnItems"), TEXT("Spawn N world items / loot containers: <Count> [Radius=1300]"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (URoxiLoadTestSubsystem* Sub = Get(World))
+			{
+				Sub->SpawnItems(Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 100, Args.Num() > 1 ? FCString::Atof(*Args[1]) : 1300.f);
+			}
+		}));
+
+	static FAutoConsoleCommandWithWorldAndArgs ClearItemsCmd(
+		TEXT("roxi.LoadTest.ClearItems"), TEXT("Destroy load-test world items and containers"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
+		{
+			if (URoxiLoadTestSubsystem* Sub = Get(World)) { Sub->ClearItems(); }
 		}));
 
 	static FAutoConsoleCommandWithWorldAndArgs MeasureCmd(

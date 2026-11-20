@@ -23,6 +23,18 @@ public:
 
 	URoxiItemInteractionComponent* GetItemInteraction() const { return ItemInteraction; }
 
+	/** Запрос возрождения после смерти (GDD §5.3). Пока только случайная точка. */
+	UFUNCTION(Server, Reliable)
+	void ServerRequestRespawn();
+
+	/** RoxiRespawn — возродиться (временная замена экрана возрождения). */
+	UFUNCTION(Exec)
+	void RoxiRespawn();
+
+	/** RoxiDamage <Amount> — нанести урон себе (отладка). */
+	UFUNCTION(Exec)
+	void RoxiDamage(float Amount);
+
 	// --- Отладочные консольные команды (Т9). Серверная часть не работает в Shipping. ---
 	// Контейнеры: inv — инвентарь, belt — пояс, loot — открытый контейнер.
 
@@ -49,6 +61,9 @@ public:
 protected:
 	UFUNCTION(Server, Reliable)
 	void ServerDevGive(FName ItemName, int32 Quantity);
+
+	UFUNCTION(Server, Reliable)
+	void ServerDevDamage(float Amount);
 
 	URoxiInventoryComponent* ResolveContainer(const FString& Name) const;
 
