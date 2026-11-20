@@ -65,6 +65,20 @@ void ARoxiPlayerController::ClientShowMessage_Implementation(const FString& Mess
 	LastMessage = Message;
 	LastMessageTime = FPlatformTime::Seconds();
 	UE_LOG(LogRoxi, Display, TEXT("MSG %s: %s"), *GetName(), *Message);
+#if !UE_BUILD_SHIPPING
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Yellow, Message);
+	}
+#endif
+}
+
+void ARoxiPlayerController::NotifyPlayer(const AController* Controller, const FString& Message)
+{
+	if (ARoxiPlayerController* PC = const_cast<ARoxiPlayerController*>(Cast<ARoxiPlayerController>(Controller)))
+	{
+		PC->ClientShowMessage(Message);
+	}
 }
 
 void ARoxiPlayerController::ServerRequestRespawn_Implementation(int32 PointId)
@@ -123,6 +137,17 @@ void ARoxiPlayerController::RoxiInv()
 			Wait > 0.0 ? *FString::Printf(TEXT("(cooldown %.0fs)"), Wait) : TEXT("(ready)")));
 	}
 	UE_LOG(LogRoxi, Display, TEXT("INV %s respawn points: %s"), *GetName(), Points.IsEmpty() ? TEXT("(none)") : *FString::Join(Points, TEXT(", ")));
+
+#if !UE_BUILD_SHIPPING
+	// То же на экран (для ручной проверки в редакторе).
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan, FString::Printf(TEXT("Respawn points: %s"),
+			Points.IsEmpty() ? TEXT("(none)") : *FString::Join(Points, TEXT(", "))));
+		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan, FString::Printf(TEXT("Belt: %s"), Belt ? *Belt->Describe() : TEXT("(no character)")));
+		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan, FString::Printf(TEXT("Inventory: %s"), Inventory ? *Inventory->Describe() : TEXT("(no character)")));
+	}
+#endif
 }
 
 void ARoxiPlayerController::RoxiMove(const FString& From, int32 FromSlot, const FString& To, int32 ToSlot, int32 Quantity)
@@ -244,6 +269,7 @@ void ARoxiPlayerController::ServerBuild_Implementation(const URoxiBuildPieceDefi
 	}
 	const ARoxiBuildingPiece* Piece = ARoxiBuildingPiece::SpawnPiece(GetWorld(), Definition, Socket, GetPersistentPlayerId());
 	UE_LOG(LogRoxi, Log, TEXT("%s built %s at %s yaw %.0f"), *GetName(), *GetNameSafe(Piece), *Location.ToCompactString(), Yaw);
+	ClientShowMessage(FString::Printf(TEXT("Built %s"), *Definition->DisplayName.ToString()));
 }
 
 // ---------------------------------------------------------------------------
@@ -257,10 +283,13 @@ void ARoxiPlayerController::ServerDevGive_Implementation(FName ItemName, int32 Q
 	if (!Inventory || !Item || Quantity <= 0)
 	{
 		UE_LOG(LogRoxi, Warning, TEXT("RoxiGive failed: item '%s' x%d"), *ItemName.ToString(), Quantity);
+		ClientShowMessage(FString::Printf(TEXT("RoxiGive: unknown item '%s'"), *ItemName.ToString()));
 		return;
 	}
 	const int32 Left = Inventory->AddItem(Item, Quantity);
 	UE_LOG(LogRoxi, Log, TEXT("RoxiGive: %s x%d to %s (did not fit: %d)"), *ItemName.ToString(), Quantity, *GetName(), Left);
+	ClientShowMessage(FString::Printf(TEXT("Received %s x%d%s"), *Item->DisplayName.ToString(), Quantity - Left,
+		Left > 0 ? *FString::Printf(TEXT(" (no room for %d)"), Left) : TEXT("")));
 #endif
 }
 

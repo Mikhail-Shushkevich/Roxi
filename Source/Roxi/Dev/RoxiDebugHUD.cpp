@@ -11,13 +11,24 @@
 #include "Items/RoxiItemInteractionComponent.h"
 #include "Items/RoxiLootContainer.h"
 #include "Items/RoxiWorldItem.h"
+#include "CanvasItem.h"
 #include "Engine/Canvas.h"
+#include "Engine/Font.h"
 #include "Engine/Engine.h"
 
 void ARoxiDebugHUD::DrawLine(const FString& Text, float& Y, const FLinearColor& Color)
 {
-	DrawText(Text, Color, 20.f, Y, GEngine->GetSmallFont());
-	Y += 16.f;
+	// Крупный шрифт с обводкой на полупрозрачной подложке — читается на любом фоне.
+	UFont* Font = GEngine->GetMediumFont();
+	float Width = 0.f, Height = 0.f;
+	Canvas->TextSize(Font, Text, Width, Height);
+	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.5f), 14.f, Y - 2.f, Width + 12.f, Height + 4.f);
+
+	FCanvasTextItem Item(FVector2D(20.f, Y), FText::FromString(Text), Font, Color);
+	Item.bOutlined = true;
+	Item.OutlineColor = FLinearColor::Black;
+	Canvas->DrawItem(Item);
+	Y += Height + 6.f;
 }
 
 void ARoxiDebugHUD::DrawMessage(const ARoxiPlayerController* PC, float& Y)
@@ -40,7 +51,8 @@ void ARoxiDebugHUD::DrawHUD()
 		return;
 	}
 
-	float Y = 20.f;
+	// Ниже середины экрана: верх занимают экранные сообщения движка (результаты команд).
+	float Y = Canvas->ClipY * 0.5f;
 	DrawLine(TEXT("ROXI DEBUG UI (temporary)"), Y, FLinearColor::Yellow);
 
 	if (!PC->GetPawn())

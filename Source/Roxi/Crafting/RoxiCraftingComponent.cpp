@@ -3,6 +3,7 @@
 #include "Crafting/RoxiCraftingComponent.h"
 #include "Crafting/RoxiRecipeDefinition.h"
 #include "Character/RoxiCharacter.h"
+#include "Core/RoxiPlayerController.h"
 #include "Items/RoxiInventoryComponent.h"
 #include "Items/RoxiItemDefinition.h"
 #include "Items/RoxiWorldItem.h"
@@ -128,6 +129,12 @@ void URoxiCraftingComponent::ServerCraft_Implementation(const URoxiRecipeDefinit
 	MarkQueueDirty();
 	UE_LOG(LogRoxi, Log, TEXT("%s queued %d/%d x %s (queue %d)"),
 		*GetNameSafe(GetOwner()), Queued, Count, *Recipe->GetName(), Queue.Num());
+	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner()))
+	{
+		ARoxiPlayerController::NotifyPlayer(OwnerPawn->GetController(), Queued > 0
+			? FString::Printf(TEXT("Crafting %d x %s"), Queued, *GetNameSafe(Recipe->OutputItem))
+			: FString(TEXT("Cannot craft: not enough resources or queue full")));
+	}
 }
 
 void URoxiCraftingComponent::ServerCancel_Implementation(int32 QueueIndex)
@@ -178,6 +185,10 @@ void URoxiCraftingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		GiveToOwner(Recipe->OutputItem, Recipe->OutputQuantity);
 		UE_LOG(LogRoxi, Log, TEXT("%s crafted %s x%d"), *GetNameSafe(GetOwner()),
 			*GetNameSafe(Recipe->OutputItem), Recipe->OutputQuantity);
+		if (const APawn* OwnerPawn = Cast<APawn>(GetOwner()))
+		{
+			ARoxiPlayerController::NotifyPlayer(OwnerPawn->GetController(), FString::Printf(TEXT("Crafted %s"), *GetNameSafe(Recipe->OutputItem)));
+		}
 	}
 	StartNextJob();
 }

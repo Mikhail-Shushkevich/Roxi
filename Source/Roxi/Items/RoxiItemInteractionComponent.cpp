@@ -165,6 +165,7 @@ void URoxiItemInteractionComponent::ServerDropItem_Implementation(URoxiInventory
 		const FVector DropLocation = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 80.f;
 		ARoxiWorldItem::SpawnItem(GetWorld(), Removed, DropLocation);
 		UE_LOG(LogRoxi, Log, TEXT("%s dropped %s"), *GetNameSafe(GetOwner()), *Removed.ToString());
+		ARoxiPlayerController::NotifyPlayer(Cast<AController>(GetOwner()), FString::Printf(TEXT("Dropped %s"), *Removed.ToString()));
 	}
 }
 
@@ -183,6 +184,7 @@ void URoxiItemInteractionComponent::ServerPickUp_Implementation(ARoxiWorldItem* 
 	if (Left != Stack.Quantity)
 	{
 		UE_LOG(LogRoxi, Log, TEXT("%s picked up %s (left on ground: %d)"), *GetNameSafe(GetOwner()), *Stack.ToString(), Left);
+		ARoxiPlayerController::NotifyPlayer(Cast<AController>(GetOwner()), FString::Printf(TEXT("Picked up %s"), *Stack.ToString()));
 	}
 	WorldItem->SetQuantity(Left);
 }
@@ -237,6 +239,7 @@ void URoxiItemInteractionComponent::ServerPlaceDeployable_Implementation(URoxiIn
 	Deployable->InitOwner(OwnerId);
 	Deployable->FinishSpawning(Final);
 	UE_LOG(LogRoxi, Log, TEXT("%s placed %s at %s"), *GetNameSafe(PC), *Deployable->GetName(), *Final.GetLocation().ToCompactString());
+	PC->ClientShowMessage(FString::Printf(TEXT("Placed %s"), *Stack.Item->DisplayName.ToString()));
 }
 
 void URoxiItemInteractionComponent::ServerCloseContainer_Implementation()

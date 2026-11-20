@@ -56,6 +56,8 @@ public:
 	/** Сообщение от сервера (причина отказа и т.п.). */
 	UFUNCTION(Client, Reliable)
 	void ClientShowMessage(const FString& Message);
+	/** Сервер: показать сообщение игроку этого контроллера (если это игрок ROXI). */
+	static void NotifyPlayer(const AController* Controller, const FString& Message);
 	const FString& GetLastMessage() const { return LastMessage; }
 	double GetLastMessageTime() const { return LastMessageTime; }
 
