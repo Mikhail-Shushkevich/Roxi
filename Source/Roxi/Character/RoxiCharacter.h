@@ -13,6 +13,7 @@ class UInputMappingContext;
 class UInputAction;
 class URoxiInventoryComponent;
 class URoxiHealthComponent;
+class URoxiCraftingComponent;
 struct FInputActionValue;
 
 UCLASS(config=Game)
@@ -60,6 +61,10 @@ class ROXI_API ARoxiCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Survival, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<URoxiHealthComponent> Health;
 
+	/** Очередь крафта (К2) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crafting, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<URoxiCraftingComponent> Crafting;
+
 public:
 	ARoxiCharacter();
 	
@@ -92,7 +97,7 @@ public:
 	URoxiInventoryComponent* GetBelt() const { return Belt; }
 	URoxiHealthComponent* GetHealth() const { return Health; }
 
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	URoxiCraftingComponent* GetCrafting() const { return Crafting; }
 
 protected:
 	virtual void BeginPlay() override;

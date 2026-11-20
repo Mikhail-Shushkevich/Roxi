@@ -4,6 +4,9 @@
 #include "Core/RoxiPlayerController.h"
 #include "Character/RoxiCharacter.h"
 #include "Survival/RoxiHealthComponent.h"
+#include "Crafting/RoxiCraftingComponent.h"
+#include "Crafting/RoxiRecipeDefinition.h"
+#include "GameFramework/GameStateBase.h"
 #include "Items/RoxiInventoryComponent.h"
 #include "Items/RoxiItemInteractionComponent.h"
 #include "Items/RoxiLootContainer.h"
@@ -15,6 +18,14 @@ void ARoxiDebugHUD::DrawLine(const FString& Text, float& Y, const FLinearColor& 
 {
 	DrawText(Text, Color, 20.f, Y, GEngine->GetSmallFont());
 	Y += 16.f;
+}
+
+void ARoxiDebugHUD::DrawMessage(const ARoxiPlayerController* PC, float& Y)
+{
+	if (!PC->GetLastMessage().IsEmpty() && FPlatformTime::Seconds() - PC->GetLastMessageTime() < 5.0)
+	{
+		DrawLine(PC->GetLastMessage(), Y, FLinearColor(1.f, 0.4f, 0.4f));
+	}
 }
 
 void ARoxiDebugHUD::DrawHUD()
@@ -34,7 +45,16 @@ void ARoxiDebugHUD::DrawHUD()
 
 	if (!PC->GetPawn())
 	{
-		DrawLine(TEXT("You are dead. Console: RoxiRespawn (random spawn point)"), Y, FLinearColor::Red);
+		DrawLine(TEXT("You are dead. Console: RoxiRespawn <id>   (0 = random point)"), Y, FLinearColor::Red);
+		const AGameStateBase* GS = GetWorld()->GetGameState();
+		const double Now = GS ? GS->GetServerWorldTimeSeconds() : 0.0;
+		for (const FRoxiRespawnPointInfo& Info : PC->GetRespawnPoints())
+		{
+			const double Wait = FMath::Max(0.0, Info.AvailableAt - Now);
+			DrawLine(FString::Printf(TEXT("  #%d %s  %s"), Info.Id, *Info.DisplayName.ToString(),
+				Wait > 0.0 ? *FString::Printf(TEXT("cooldown %.0fs"), Wait) : TEXT("ready")), Y);
+		}
+		DrawMessage(PC, Y);
 		return;
 	}
 
@@ -42,7 +62,21 @@ void ARoxiDebugHUD::DrawHUD()
 	{
 		const URoxiHealthComponent* Health = MyCharacter->GetHealth();
 		DrawLine(FString::Printf(TEXT("Health: %.0f / %.0f"), Health->GetHealth(), Health->GetMaxHealth()), Y);
+
+		const URoxiCraftingComponent* Crafting = MyCharacter->GetCrafting();
+		if (!Crafting->GetQueue().IsEmpty())
+		{
+			const AGameStateBase* GS = GetWorld()->GetGameState();
+			const double Left = GS ? FMath::Max(0.0, Crafting->GetCurrentJobEndTime() - GS->GetServerWorldTimeSeconds()) : 0.0;
+			TArray<FString> Jobs;
+			for (const FRoxiCraftJob& Job : Crafting->GetQueue())
+			{
+				Jobs.Add(GetNameSafe(Job.Recipe.Get()));
+			}
+			DrawLine(FString::Printf(TEXT("Crafting (%.1fs): %s"), Left, *FString::Join(Jobs, TEXT(", "))), Y, FLinearColor(1.f, 0.7f, 0.3f));
+		}
 	}
+	DrawMessage(PC, Y);
 
 	if (const URoxiInventoryComponent* Inventory = Interaction->GetPawnInventory())
 	{
@@ -71,6 +105,6 @@ void ARoxiDebugHUD::DrawHUD()
 		DrawLine(Prompt, Y, FLinearColor(0.4f, 0.8f, 1.f));
 	}
 
-	DrawLine(TEXT("Console: RoxiGive <Item> <N> | RoxiMove <inv|belt|loot> <slot> <inv|belt|loot> <slot> <N> | RoxiDrop <c> <slot> <N> | RoxiDamage <N> | RoxiInv"), Y, FLinearColor::Gray);
+	DrawLine(TEXT("Console: RoxiGive <Item> <N> | RoxiMove <inv|belt|loot> <slot> <inv|belt|loot> <slot> <N> | RoxiDrop <c> <slot> <N> | RoxiDamage <N> | RoxiHit <N> | RoxiCraft <Recipe> <N> | RoxiPlace <c> <slot> | RoxiInv"), Y, FLinearColor::Gray);
 #endif
 }

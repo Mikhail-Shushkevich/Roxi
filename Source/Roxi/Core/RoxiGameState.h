@@ -6,12 +6,22 @@
 #include "GameFramework/GameStateBase.h"
 #include "RoxiGameState.generated.h"
 
+struct FStreamableHandle;
+
 /**
  * Состояние матча/сервера, реплицируемое всем клиентам.
- * Пока пустое — сюда будут добавляться общие для сервера данные по мере появления систем.
+ * Также держит загруженными описания предметов, рецептов и построек (на сервере и клиентах),
+ * чтобы их не выгружал сборщик мусора и не приходилось синхронно загружать во время обработки сети.
  */
 UCLASS()
 class ROXI_API ARoxiGameState : public AGameStateBase
 {
 	GENERATED_BODY()
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+private:
+	TArray<TSharedPtr<FStreamableHandle>> DefinitionHandles;
 };

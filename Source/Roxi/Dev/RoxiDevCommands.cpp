@@ -9,6 +9,7 @@
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
 #include "Roxi.h"
+#include "Building/RoxiNoBuildZone.h"
 
 #if !UE_BUILD_SHIPPING
 namespace RoxiDevCommands
@@ -35,6 +36,24 @@ namespace RoxiDevCommands
 			return;
 		}
 	}
+
+	static FAutoConsoleCommandWithWorldAndArgs NoBuildZoneCmd(
+		TEXT("roxi.Dev.NoBuildZone"),
+		TEXT("roxi.Dev.NoBuildZone <X> <Y> <Z> <Radius> — server: spawn a temporary no-build zone (tests)."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (!World || World->GetNetMode() == NM_Client || Args.Num() < 4)
+			{
+				UE_LOG(LogRoxi, Warning, TEXT("Usage (server): roxi.Dev.NoBuildZone <X> <Y> <Z> <Radius>"));
+				return;
+			}
+			const FVector Location(FCString::Atof(*Args[0]), FCString::Atof(*Args[1]), FCString::Atof(*Args[2]));
+			if (ARoxiNoBuildZone* Zone = World->SpawnActor<ARoxiNoBuildZone>(Location, FRotator::ZeroRotator))
+			{
+				Zone->SetRadius(FCString::Atof(*Args[3]));
+				UE_LOG(LogRoxi, Log, TEXT("NoBuildZone at %s, radius %.0f"), *Location.ToCompactString(), Zone->GetRadius());
+			}
+		}));
 
 	static FAutoConsoleCommand DelayCmd(
 		TEXT("roxi.Delay"),

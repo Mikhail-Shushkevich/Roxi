@@ -40,6 +40,9 @@ public:
 	bool IsEmpty() const;
 	FString Describe() const { return Slots.Describe(); }
 
+	/** Сколько всего предметов этого типа во всех слотах. */
+	int32 CountItem(const URoxiItemDefinition* Item) const;
+
 	/** Число слотов, создаваемых в BeginPlay. Для конструкторов владельцев. */
 	void SetInitialNumSlots(int32 InNumSlots) { NumSlots = FMath::Max(1, InNumSlots); }
 
@@ -53,6 +56,9 @@ public:
 
 	/** Забрать Quantity (<= 0 — всю стопку) из слота. */
 	FRoxiItemStack RemoveFromSlot(int32 Slot, int32 Quantity);
+
+	/** Списать Quantity предметов этого типа из любых слотов. Возвращает, сколько списано. */
+	int32 RemoveItem(const URoxiItemDefinition* Item, int32 Quantity);
 
 	/** Забрать всё содержимое (например, при смерти). */
 	TArray<FRoxiItemStack> RemoveAll();

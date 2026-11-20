@@ -30,6 +30,9 @@ public:
 	float GetMaxHealth() const { return MaxHealth; }
 	bool IsDead() const { return bDead; }
 
+	/** Максимум здоровья, применяемый в BeginPlay. Для конструкторов и отложенного спавна. */
+	void SetInitialMaxHealth(float InMaxHealth) { MaxHealth = FMath::Max(1.f, InMaxHealth); Health = MaxHealth; }
+
 	/** Сервер: нанести урон. При достижении 0 — смерть (один раз). */
 	void ApplyDamage(float Amount, AController* Instigator);
 
@@ -44,5 +47,10 @@ protected:
 	float Health = 100.f;
 
 private:
+	/** Любой урон по владельцу (AActor::TakeDamage -> OnTakeAnyDamage). */
+	UFUNCTION()
+	void HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType,
+		AController* InstigatedBy, AActor* DamageCauser);
+
 	bool bDead = false;
 };

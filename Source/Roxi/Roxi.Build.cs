@@ -14,7 +14,7 @@ public class Roxi : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
 
 		// NetCore: Push Model (MARK_PROPERTY_DIRTY) for replicated properties.
-		// AIModule: AAIController for load-test bots (Dev/).
-		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore", "AIModule" });
+		// AIModule: AAIController for load-test bots (Dev/). CoreOnline: persistent player IDs (FUniqueNetIdWrapper).
+		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore", "AIModule", "CoreOnline" });
 	}
 }

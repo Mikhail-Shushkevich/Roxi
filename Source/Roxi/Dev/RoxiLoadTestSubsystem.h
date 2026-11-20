@@ -35,6 +35,8 @@ public:
 	/** Предметы на земле (каждый 4-й — контейнер с добычей) для замера стоимости спящих акторов. */
 	void SpawnItems(int32 Count, float Radius);
 	void ClearItems();
+	/** Элементы построек (сетка фундамент + стена) для замера К7. */
+	void SpawnPieces(int32 Count);
 	void StartMeasure(float Seconds);
 	void StartSweep(float InitialDelay, float MeasureSeconds, const TArray<int32>& Counts);
 

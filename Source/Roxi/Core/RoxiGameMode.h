@@ -24,8 +24,14 @@ public:
 	/** Смерть персонажа (GDD §5.2): все предметы — в контейнер на месте смерти, персонаж удаляется. */
 	void HandleCharacterDeath(ARoxiCharacter* Victim, AController* Killer);
 
-	/** Возрождение по запросу игрока (GDD §5.3). Пока только случайная точка; спальники и кровати — Этап 3. */
-	void RequestRespawn(AController* Controller);
+	/**
+	 * Возрождение по запросу игрока (GDD §5.3).
+	 * PointId > 0 — на своём спальнике/кровати (проверяются владелец и перезарядка); 0 — случайная точка.
+	 */
+	void RequestRespawn(AController* Controller, int32 PointId);
+
+	/** Точки возрождения владельца изменились — обновить его список у подключённого игрока. */
+	void NotifyRespawnPointsChanged(const FString& OwnerId);
 
 protected:
 	virtual void PostLogin(APlayerController* NewPlayer) override;

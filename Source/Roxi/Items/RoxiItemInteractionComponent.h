@@ -65,6 +65,10 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerCloseContainer();
 
+	/** Разместить предмет из своего инвентаря/пояса как объект в мире (К3). Сервер проверяет место. */
+	UFUNCTION(Server, Reliable)
+	void ServerPlaceDeployable(URoxiInventoryComponent* From, int32 Slot, FVector Location, float Yaw);
+
 	/** Сервер: закрыть открытый контейнер. */
 	void CloseContainer();
 

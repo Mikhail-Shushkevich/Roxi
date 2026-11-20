@@ -10,6 +10,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "HAL/IConsoleManager.h"
+#include "Building/RoxiBuildingPiece.h"
+#include "Building/RoxiBuildPieceDefinition.h"
 #include "Items/RoxiInventoryComponent.h"
 #include "Items/RoxiItemDefinition.h"
 #include "Items/RoxiLootContainer.h"
@@ -158,6 +160,45 @@ void URoxiLoadTestSubsystem::SpawnItems(int32 Count, float Radius)
 	}
 	UE_LOG(LogRoxi, Log, TEXT("LoadTest: spawned %d world actors (%d loot containers), total %d"),
 		Count, Containers, SpawnedItems.Num());
+}
+
+void URoxiLoadTestSubsystem::SpawnPieces(int32 Count)
+{
+	const URoxiBuildPieceDefinition* Foundation = URoxiBuildPieceDefinition::LoadByName(TEXT("DA_Piece_Foundation"));
+	const URoxiBuildPieceDefinition* Wall = URoxiBuildPieceDefinition::LoadByName(TEXT("DA_Piece_Wall"));
+	if (!HasAuthorityWorld() || Count <= 0 || !Foundation || !Wall)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	FVector Center = FVector::ZeroVector;
+	for (TActorIterator<APlayerStart> It(World); It; ++It)
+	{
+		Center = It->GetActorLocation();
+		break;
+	}
+
+	// Сетка «фундамент + стена» — половина элементов каждого типа. Без проверок размещения.
+	const int32 Cells = FMath::Max(1, Count / 2);
+	const int32 Side = FMath::CeilToInt(FMath::Sqrt(static_cast<float>(Cells)));
+	TArray<FRoxiBuildSocket> Sockets;
+	for (int32 i = 0; i < Cells; ++i)
+	{
+		FRoxiBuildSocket Socket;
+		Socket.Location = Center + FVector((i % Side) * RoxiBuildGrid::CellSize, (i / Side) * RoxiBuildGrid::CellSize, 0.f);
+		if (ARoxiBuildingPiece* Piece = ARoxiBuildingPiece::SpawnPiece(World, Foundation, Socket, TEXT("LoadTest")))
+		{
+			SpawnedItems.Add(Piece);
+			Sockets.Reset();
+			Piece->GetSockets(ERoxiPieceType::Wall, Sockets);
+			if (ARoxiBuildingPiece* WallPiece = ARoxiBuildingPiece::SpawnPiece(World, Wall, Sockets[0], TEXT("LoadTest")))
+			{
+				SpawnedItems.Add(WallPiece);
+			}
+		}
+	}
+	UE_LOG(LogRoxi, Log, TEXT("LoadTest: spawned %d building pieces, total spawned %d"), Cells * 2, SpawnedItems.Num());
 }
 
 void URoxiLoadTestSubsystem::ClearItems()
@@ -346,6 +387,13 @@ namespace RoxiLoadTest
 			{
 				Sub->SpawnItems(Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 100, Args.Num() > 1 ? FCString::Atof(*Args[1]) : 1300.f);
 			}
+		}));
+
+	static FAutoConsoleCommandWithWorldAndArgs SpawnPiecesCmd(
+		TEXT("roxi.LoadTest.SpawnPieces"), TEXT("Spawn N building pieces (foundation+wall grid): <Count>"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (URoxiLoadTestSubsystem* Sub = Get(World)) { Sub->SpawnPieces(Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 1000); }
 		}));
 
 	static FAutoConsoleCommandWithWorldAndArgs ClearItemsCmd(

@@ -126,6 +126,46 @@ FRoxiItemStack URoxiInventoryComponent::RemoveFromSlot(int32 Slot, int32 Quantit
 	return Removed;
 }
 
+int32 URoxiInventoryComponent::CountItem(const URoxiItemDefinition* Item) const
+{
+	int32 Total = 0;
+	for (int32 i = 0; i < Slots.Num(); ++i)
+	{
+		const FRoxiItemStack Stack = Slots.GetStack(i);
+		if (!Stack.IsEmpty() && Stack.Item == Item)
+		{
+			Total += Stack.Quantity;
+		}
+	}
+	return Total;
+}
+
+int32 URoxiInventoryComponent::RemoveItem(const URoxiItemDefinition* Item, int32 Quantity)
+{
+	if (!HasAuthority() || !Item || Quantity <= 0)
+	{
+		return 0;
+	}
+	int32 Removed = 0;
+	// С конца — чтобы сначала тратились последние стопки.
+	for (int32 i = Slots.Num() - 1; i >= 0 && Removed < Quantity; --i)
+	{
+		FRoxiItemStack Stack = Slots.GetStack(i);
+		if (!Stack.IsEmpty() && Stack.Item == Item)
+		{
+			const int32 Take = FMath::Min(Stack.Quantity, Quantity - Removed);
+			Stack.Quantity -= Take;
+			Slots.SetStack(i, Stack);
+			Removed += Take;
+		}
+	}
+	if (Removed > 0)
+	{
+		BroadcastChanged();
+	}
+	return Removed;
+}
+
 TArray<FRoxiItemStack> URoxiInventoryComponent::RemoveAll()
 {
 	TArray<FRoxiItemStack> Result;

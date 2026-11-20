@@ -27,7 +27,14 @@ void URoxiHealthComponent::BeginPlay()
 	{
 		Health = MaxHealth;
 		MARK_PROPERTY_DIRTY_FROM_NAME(URoxiHealthComponent, Health, this);
+		GetOwner()->OnTakeAnyDamage.AddDynamic(this, &URoxiHealthComponent::HandleTakeAnyDamage);
 	}
+}
+
+void URoxiHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+	AController* InstigatedBy, AActor* DamageCauser)
+{
+	ApplyDamage(Damage, InstigatedBy);
 }
 
 void URoxiHealthComponent::ApplyDamage(float Amount, AController* Instigator)

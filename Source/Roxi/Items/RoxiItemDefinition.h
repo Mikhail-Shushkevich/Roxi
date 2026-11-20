@@ -6,6 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "RoxiItemDefinition.generated.h"
 
+class ARoxiDeployable;
 class UStaticMesh;
 class UTexture2D;
 
@@ -42,4 +43,8 @@ public:
 	/** Максимальный размер стопки (В2). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ClampMin = 1))
 	int32 MaxStackSize = 1;
+
+	/** Если задан — предмет можно разместить в мире как этот объект (К3): спальник, кровать... */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	TSoftClassPtr<ARoxiDeployable> DeployableClass;
 };

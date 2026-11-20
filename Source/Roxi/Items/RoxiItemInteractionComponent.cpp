@@ -5,6 +5,9 @@
 #include "Items/RoxiLootContainer.h"
 #include "Items/RoxiWorldItem.h"
 #include "Character/RoxiCharacter.h"
+#include "Building/RoxiDeployable.h"
+#include "Core/RoxiPlayerController.h"
+#include "Items/RoxiItemDefinition.h"
 #include "Roxi.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
@@ -198,6 +201,42 @@ void URoxiItemInteractionComponent::ServerOpenContainer_Implementation(AActor* C
 	ViewedSlots.SyncFrom(Inventory->GetList());
 	ViewedChangedHandle = Inventory->OnChanged.AddUObject(this, &URoxiItemInteractionComponent::HandleViewedContainerChanged);
 	UE_LOG(LogRoxi, Log, TEXT("%s opened %s"), *GetNameSafe(GetOwner()), *GetNameSafe(Container));
+}
+
+void URoxiItemInteractionComponent::ServerPlaceDeployable_Implementation(URoxiInventoryComponent* From, int32 Slot, FVector Location, float Yaw)
+{
+	ARoxiPlayerController* PC = Cast<ARoxiPlayerController>(GetOwner());
+	APawn* Pawn = GetControlledPawn();
+	// Только из своего инвентаря или пояса.
+	if (!PC || !Pawn || !From || (From != GetPawnInventory() && From != GetPawnBelt()))
+	{
+		return;
+	}
+
+	const FRoxiItemStack Stack = From->GetStack(Slot);
+	TSubclassOf<ARoxiDeployable> DeployableClass = (!Stack.IsEmpty() && !Stack.Item->DeployableClass.IsNull())
+		? Stack.Item->DeployableClass.LoadSynchronous() : nullptr;
+	if (!DeployableClass)
+	{
+		PC->ClientShowMessage(TEXT("This item cannot be placed"));
+		return;
+	}
+
+	FTransform Final;
+	FString Reason;
+	const FString OwnerId = PC->GetPersistentPlayerId();
+	if (!ARoxiDeployable::ValidatePlacement(DeployableClass, Pawn, OwnerId, FTransform(FRotator(0.f, Yaw, 0.f), Location), Final, Reason))
+	{
+		PC->ClientShowMessage(FString::Printf(TEXT("Cannot place: %s"), *Reason));
+		return;
+	}
+
+	From->RemoveFromSlot(Slot, 1);
+	ARoxiDeployable* Deployable = GetWorld()->SpawnActorDeferred<ARoxiDeployable>(DeployableClass, Final, nullptr, nullptr,
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	Deployable->InitOwner(OwnerId);
+	Deployable->FinishSpawning(Final);
+	UE_LOG(LogRoxi, Log, TEXT("%s placed %s at %s"), *GetNameSafe(PC), *Deployable->GetName(), *Final.GetLocation().ToCompactString());
 }
 
 void URoxiItemInteractionComponent::ServerCloseContainer_Implementation()

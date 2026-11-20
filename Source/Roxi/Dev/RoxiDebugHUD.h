@@ -20,4 +20,5 @@ public:
 
 private:
 	void DrawLine(const FString& Text, float& Y, const FLinearColor& Color = FLinearColor::White);
+	void DrawMessage(const class ARoxiPlayerController* PC, float& Y);
 };

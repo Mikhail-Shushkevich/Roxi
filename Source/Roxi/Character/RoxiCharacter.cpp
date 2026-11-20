@@ -14,6 +14,7 @@
 #include "Items/RoxiInventoryComponent.h"
 #include "Items/RoxiItemInteractionComponent.h"
 #include "Survival/RoxiHealthComponent.h"
+#include "Crafting/RoxiCraftingComponent.h"
 #include "Core/RoxiGameMode.h"
 #include "Engine/World.h"
 
@@ -61,6 +62,7 @@ ARoxiCharacter::ARoxiCharacter()
 	Belt->SetInitialNumSlots(6);
 
 	Health = CreateDefaultSubobject<URoxiHealthComponent>(TEXT("Health"));
+	Crafting = CreateDefaultSubobject<URoxiCraftingComponent>(TEXT("Crafting"));
 }
 
 void ARoxiCharacter::BeginPlay()
@@ -70,13 +72,6 @@ void ARoxiCharacter::BeginPlay()
 	{
 		Health->OnDeath.AddUObject(this, &ARoxiCharacter::HandleDeath);
 	}
-}
-
-float ARoxiCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	const float Applied = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-	Health->ApplyDamage(Applied, EventInstigator);
-	return Applied;
 }
 
 void ARoxiCharacter::HandleDeath(URoxiHealthComponent* DeadHealth, AController* Killer)
